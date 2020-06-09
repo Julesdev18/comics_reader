@@ -31,20 +31,29 @@ class COMICParser:
         self.image_list.sort()
         return self.image_list
 
-    def generate_metadata(self, author='<Unknown>', isbn = None, tags=[], quality=0):
-        title = os.path.basename(self.book_extension[0]).strip(' ')
-        cover = self.book.read(self.image_list[0])
-
+    def generate_metadata(self, name, author='<Unknown>', isbn = None, tags=[], quality=0):
+        self._metadata = {"author":author, "tags":tags, "quality":quality}
+        return self._metadata
+    
+    def getMetadata(self, name):
         creation_time = time.ctime(os.path.getctime(self.filename))
         year = creation_time.split()[-1]
 
-        """NOTE: C'est ici qu'il serait malin d'enregister les informations dans un fichier..."""
-        
-        self._metadata = {"cover":cover, "title": title, "author":author, "year":year, "tags":tags, "quality":quality}
-        return self._metadata
-    
-    def getMetadata(self):
-        return self._metadata
+        file_metadata = {}
+        with open('library/library.json') as library_json:
+            library = json.load(library_json)
+            if name in library:
+                file_metadata = library[name]
+
+                self._metadata = {
+                    'title': name,
+                    'author': file_metadata['author'],
+                    'year': year,
+                    'tags': file_metadata['tags'],
+                    'quality': file_metadata['quality']
+                }
+                return self._metadata
+            return None
 
     def generate_content(self):
         return self.image_list

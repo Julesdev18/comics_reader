@@ -1,5 +1,10 @@
 {
-  "title": {
+  "spiderman1": {
+    "author": "jules",
+    "tags": "action, fantastic, superhero",
+    "quality": "5/5"
+  },
+  "spidersurf": {
     "author": "jules",
     "tags": "action, fantastic, superhero",
     "quality": "5/5"

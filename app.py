@@ -9,7 +9,7 @@ from PyQt5.QtGui import QIcon, QKeySequence, QPixmap
 class Window(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setGeometry(50, 50, 850, 950)
+        self.setGeometry(50, 50, 850, 600)
         self.setWindowTitle('Comics')
         self.init_GUI()
         self.comics_tabs = {}
@@ -55,7 +55,7 @@ class Window(QMainWindow):
 
         # add tabs widget
         self.tab_widget = QTabWidget(self.centralwidget)
-        self.tab_widget.setGeometry(QRect(0, 0, 850, 900))
+        self.tab_widget.setGeometry(QRect(0, 0, 850, 600))
         self.tab_widget.setObjectName('tab_widget')
         self.tab_widget.setTabsClosable(True)
         self.tab_widget.tabCloseRequested.connect(lambda index: self.remove_tab(index))
@@ -67,16 +67,16 @@ class Window(QMainWindow):
 
         # show library in library tab
         self.scroll_area = QScrollArea(self.library_tab)
-        self.scroll_area.setGeometry(QRect(0, 0, 850, 900))
+        self.scroll_area.setGeometry(QRect(0, 0, 850, 600))
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setObjectName('scroll_area')
         self.scroll_area_widget_contents = QWidget()
-        self.scroll_area_widget_contents.setGeometry(QRect(0, 0, 850, 900))
+        self.scroll_area_widget_contents.setGeometry(QRect(0, 0, 850, 600))
         self.scroll_area_widget_contents.setObjectName(
             'scroll_area_widget_contents')
         self.scroll_area.setWidget(self.scroll_area_widget_contents)
         self.table_widget = QTableWidget(self.scroll_area_widget_contents)
-        self.table_widget.setGeometry(QRect(0, 0, 850, 900))
+        self.table_widget.setGeometry(QRect(0, 0, 850, 600))
         self.table_widget.setRowCount(1)
         self.table_widget.setColumnCount(8)
         self.table_widget.setObjectName('table_widget')
@@ -117,6 +117,15 @@ class Window(QMainWindow):
             cover_label.setPixmap(QPixmap('library/' + os.path.splitext(comic)[0] + '/' + pictures[0]))
             self.table_widget.setItem(index, 1, QTableWidgetItem())
             self.table_widget.item(index, 1).setText(os.path.splitext(comic)[0])
+            metadata = comicParser.getMetadata(os.path.splitext(comic)[0])
+            self.table_widget.setItem(index, 2, QTableWidgetItem())
+            self.table_widget.item(index, 2).setText(metadata['author'])
+            self.table_widget.setItem(index, 3, QTableWidgetItem())
+            self.table_widget.item(index, 3).setText(metadata['year'])
+            self.table_widget.setItem(index, 4, QTableWidgetItem())
+            self.table_widget.item(index, 4).setText(metadata['tags'])
+            self.table_widget.setItem(index, 5, QTableWidgetItem())
+            self.table_widget.item(index, 5).setText(metadata['quality'])
             read_button = QPushButton(self.table_widget)
             self.table_widget.setCellWidget(index, 6, read_button)
             read_button.setText('Lire la BD')
@@ -164,7 +173,7 @@ class Window(QMainWindow):
                 self.comics_picture_label[comics_title] = QLabel(
                     self.comics_tabs[comics_title])
                 self.comics_picture_label[comics_title].setGeometry(
-                    QRect(0, 0, 600, 900))
+                    QRect(0, 0, 350, 500))
                 self.comics_picture_label[comics_title].setScaledContents(True)
                 self.comics_picture_label[comics_title].setAlignment(Qt.AlignCenter)
                 self.comics_picture_label[comics_title].setObjectName(comics_title)
@@ -172,6 +181,7 @@ class Window(QMainWindow):
                 comicParser = COMICParser('library/' + comic)
                 self.comics_pictures[comics_title] = comicParser.read_book()
                 self.comics_current_page[comics_title] = 0
+                comicParser.generate_metadata()
 
                 self.comics_picture_label[comics_title].setPixmap(QPixmap(
                     'library/' + comics_title + '/' + self.comics_pictures[comics_title][0]))
