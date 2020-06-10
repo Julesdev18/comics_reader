@@ -31,9 +31,23 @@ class COMICParser:
         self.image_list.sort()
         return self.image_list
 
-    def generate_metadata(self, name, author='<Unknown>', isbn = None, tags=[], quality=0):
-        self._metadata = {"author":author, "tags":tags, "quality":quality}
-        return self._metadata
+    def generate_metadata(self, name, author='<Unknown>', tags='', quality='-/10'):
+        library = {}
+        try:
+            with open('library/library.json') as library_json:
+                library = json.load(library_json)
+        except:
+            with open('library/library.json', 'w') as library_json:
+                json.dump(library, library_json)
+            with open('library/library.json') as library_json:
+                library = json.load(library_json)
+        library[name] = {
+            'author': author,
+            'tags': tags,
+            'quality': quality
+        }
+        with open('library/library.json', 'w') as library_json:
+            json.dump(library, library_json)
     
     def getMetadata(self, name):
         creation_time = time.ctime(os.path.getctime(self.filename))
@@ -41,25 +55,22 @@ class COMICParser:
 
         file_metadata = {}
         with open('library/library.json') as library_json:
-            library = json.load(library_json)
-            if name in library:
-                file_metadata = library[name]
+            try:
+                library = json.load(library_json)
+                if name in library:
+                    file_metadata = library[name]
 
-                self._metadata = {
-                    'title': name,
-                    'author': file_metadata['author'],
-                    'year': year,
-                    'tags': file_metadata['tags'],
-                    'quality': file_metadata['quality']
-                }
-                return self._metadata
-            return None
-
-    def generate_content(self):
-        return self.image_list
-    
-    def get_filename(self):
-        return self.filename
+                    self._metadata = {
+                        'title': name,
+                        'author': file_metadata['author'],
+                        'year': year,
+                        'tags': file_metadata['tags'],
+                        'quality': file_metadata['quality']
+                    }
+                self._metadata['year'] = year
+            except:
+                self._metadata['year'] = year
+            return self._metadata
     
 def unzip(source_filename, dest_dir):
     with zipfile.ZipFile(source_filename) as zf:
