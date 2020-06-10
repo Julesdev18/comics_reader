@@ -9,14 +9,14 @@ from PyQt5.QtGui import QIcon, QKeySequence, QPixmap
 class Window(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setGeometry(50, 50, 850, 600)
-        self.setWindowTitle('Comics')
-        self.init_GUI()
         self.comics_tabs = {}
         self.comics_tabs_index = {}
         self.comics_pictures = {}
         self.comics_current_page = {}
         self.comics_picture_label = {}
+        self.setGeometry(50, 50, 850, 600)
+        self.setWindowTitle('Comics')
+        self.init_GUI()
 
     def init_GUI(self):
         # create toolbar
@@ -57,7 +57,7 @@ class Window(QMainWindow):
         self.tab_widget = QTabWidget(self.centralwidget)
         self.tab_widget.setGeometry(QRect(0, 0, 850, 600))
         self.tab_widget.setObjectName('tab_widget')
-        self.tab_widget.setTabsClosable(True)
+        self.tab_widget.setTabsClosable(False)
         self.tab_widget.tabCloseRequested.connect(lambda index: self.remove_tab(index))
 
         # add library tab
@@ -81,60 +81,7 @@ class Window(QMainWindow):
         self.table_widget.setColumnCount(8)
         self.table_widget.setObjectName('table_widget')
         self.table_widget.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.table_widget.setItem(0, 0, QTableWidgetItem())
-        self.table_widget.item(0, 0).setText('Cover')
-        self.table_widget.setItem(0, 1, QTableWidgetItem())
-        self.table_widget.item(0, 1).setText('Titre')
-        self.table_widget.setItem(0, 2, QTableWidgetItem())
-        self.table_widget.item(0, 2).setText('Auteur')
-        self.table_widget.setItem(0, 3, QTableWidgetItem())
-        self.table_widget.item(0, 3).setText('Année')
-        self.table_widget.setItem(0, 4, QTableWidgetItem())
-        self.table_widget.item(0, 4).setText('Tags')
-        self.table_widget.setItem(0, 5, QTableWidgetItem())
-        self.table_widget.item(0, 5).setText('Quality')
-
-        self.library_files = get_library_files()
-        index = 0
-        for comic in self.library_files:
-            if os.path.splitext(comic)[1].lower() == '.cbz':
-                unzip('library/' + comic, 'library/' + os.path.splitext(comic)[0])
-            else:
-                unrar('library/' + comic, 'library/' + os.path.splitext(comic)[0])
-            index += 1
-            self.table_widget.insertRow(index)
-            cover_widget = QWidget()
-            self.table_widget.setCellWidget(index, 0, cover_widget)
-            self.table_widget.setRowHeight(index, 150)
-            comicParser = COMICParser('library/' + comic)
-            pictures = comicParser.read_book()
-            cover_label = QLabel(cover_widget)
-            cover_label.setGeometry(
-                    QRect(0, 0, 100, 150))
-            cover_label.setScaledContents(True)
-            cover_label.setAlignment(Qt.AlignCenter)
-            cover_label.setObjectName(comic)
-            cover_label.setPixmap(QPixmap('library/' + os.path.splitext(comic)[0] + '/' + pictures[0]))
-            self.table_widget.setItem(index, 1, QTableWidgetItem())
-            self.table_widget.item(index, 1).setText(os.path.splitext(comic)[0])
-            metadata = comicParser.getMetadata(os.path.splitext(comic)[0])
-            self.table_widget.setItem(index, 3, QTableWidgetItem())
-            self.table_widget.item(index, 3).setText(metadata['year'])
-            if 'author' and 'tags' and 'quality' in metadata:
-                self.table_widget.setItem(index, 2, QTableWidgetItem())
-                self.table_widget.item(index, 2).setText(metadata['author'])
-                self.table_widget.setItem(index, 4, QTableWidgetItem())
-                self.table_widget.item(index, 4).setText(metadata['tags'])
-                self.table_widget.setItem(index, 5, QTableWidgetItem())
-                self.table_widget.item(index, 5).setText(metadata['quality'])
-            read_button = QPushButton(self.table_widget)
-            self.table_widget.setCellWidget(index, 6, read_button)
-            read_button.setText('Lire la BD')
-            read_button.clicked.connect(self.make_read_comic(comic))
-            edit_button = QPushButton(self.table_widget)
-            self.table_widget.setCellWidget(index, 7, edit_button)
-            edit_button.setText('Modifier les infos')
-            edit_button.clicked.connect(self.make_open_edit_tab(comic))
+        self.set_library()
 
     ### actions ###
     def previous_page(self):
@@ -185,11 +132,19 @@ class Window(QMainWindow):
 
                 self.comics_picture_label[comics_title].setPixmap(QPixmap(
                     'library/' + comics_title + '/' + self.comics_pictures[comics_title][0]))
+                close_button = QPushButton('Fermer la BD', self.comics_tabs[comics_title])
+                close_button.setGeometry(250, 510, 100, 25)
+                def close():
+                    self.remove_tab(self.tab_widget.indexOf(self.comics_tabs[comics_title]))
+                close_button.clicked.connect(close)
         return read_comic
 
     def remove_tab(self, index, tab_type = ''):
         if index > 0 and tab_type == 'edit':
             self.tab_widget.removeTab(index)
+            self.comics_tabs_index = {}
+            for key, value in self.comics_tabs.items():
+                self.comics_tabs_index[key] = self.tab_widget.indexOf(value)
         elif index > 0:
             self.tab_widget.removeTab(index)
             comics_to_close = None
@@ -211,7 +166,6 @@ class Window(QMainWindow):
             edit_tab = QWidget()
             edit_tab.setObjectName('edit_tab')
             self.tab_widget.addTab(edit_tab, 'Modifier ' + file)
-            print(self.tab_widget.indexOf(edit_tab))
             QLabel('Auteur :', edit_tab).setGeometry(0, 0, 400, 20)
             author_text = QLineEdit('<unknown>', edit_tab)
             if 'author' in file_infos:
@@ -230,13 +184,78 @@ class Window(QMainWindow):
                 quality_text.setText(file_infos['quality'])
             quality_text.setGeometry(0, 120, 400, 20)
             quality_text.setObjectName('quality_text')
+            cancel_button = QPushButton('Annuler', edit_tab)
+            cancel_button.setGeometry(190, 150, 100, 25)
             validate_button = QPushButton('Enregistrer', edit_tab)
             validate_button.setGeometry(300, 150, 100, 25)
+            def cancel():
+                self.remove_tab(self.tab_widget.indexOf(edit_tab), 'edit')
             def edit_info():
                 comicParser.generate_metadata(os.path.splitext(file)[0], author_text.text(), tags_text.text(), quality_text.text())
                 self.remove_tab(self.tab_widget.indexOf(edit_tab), 'edit')
+                self.set_library()
+            cancel_button.clicked.connect(cancel)
             validate_button.clicked.connect(edit_info)
         return open_edit_tab
+
+    def set_library(self):
+        self.table_widget.clear()
+        self.table_widget.setRowCount(1)
+        self.table_widget.setItem(0, 0, QTableWidgetItem())
+        self.table_widget.item(0, 0).setText('Cover')
+        self.table_widget.setItem(0, 1, QTableWidgetItem())
+        self.table_widget.item(0, 1).setText('Titre')
+        self.table_widget.setItem(0, 2, QTableWidgetItem())
+        self.table_widget.item(0, 2).setText('Auteur')
+        self.table_widget.setItem(0, 3, QTableWidgetItem())
+        self.table_widget.item(0, 3).setText('Année')
+        self.table_widget.setItem(0, 4, QTableWidgetItem())
+        self.table_widget.item(0, 4).setText('Tags')
+        self.table_widget.setItem(0, 5, QTableWidgetItem())
+        self.table_widget.item(0, 5).setText('Quality')
+
+        self.library_files = get_library_files()
+        index = 0
+        for comic in self.library_files:
+            if os.path.splitext(comic)[1].lower() == '.cbz':
+                unzip('library/' + comic, 'library/' + os.path.splitext(comic)[0])
+            else:
+                unrar('library/' + comic, 'library/' + os.path.splitext(comic)[0])
+            index += 1
+            print(index)
+            self.table_widget.insertRow(index)
+            cover_widget = QWidget()
+            self.table_widget.setCellWidget(index, 0, cover_widget)
+            self.table_widget.setRowHeight(index, 150)
+            comicParser = COMICParser('library/' + comic)
+            pictures = comicParser.read_book()
+            cover_label = QLabel(cover_widget)
+            cover_label.setGeometry(
+                    QRect(0, 0, 100, 150))
+            cover_label.setScaledContents(True)
+            cover_label.setAlignment(Qt.AlignCenter)
+            cover_label.setObjectName(comic)
+            cover_label.setPixmap(QPixmap('library/' + os.path.splitext(comic)[0] + '/' + pictures[0]))
+            self.table_widget.setItem(index, 1, QTableWidgetItem())
+            self.table_widget.item(index, 1).setText(os.path.splitext(comic)[0])
+            metadata = comicParser.getMetadata(os.path.splitext(comic)[0])
+            self.table_widget.setItem(index, 3, QTableWidgetItem())
+            self.table_widget.item(index, 3).setText(metadata['year'])
+            if 'author' and 'tags' and 'quality' in metadata:
+                self.table_widget.setItem(index, 2, QTableWidgetItem())
+                self.table_widget.item(index, 2).setText(metadata['author'])
+                self.table_widget.setItem(index, 4, QTableWidgetItem())
+                self.table_widget.item(index, 4).setText(metadata['tags'])
+                self.table_widget.setItem(index, 5, QTableWidgetItem())
+                self.table_widget.item(index, 5).setText(metadata['quality'])
+            read_button = QPushButton(self.table_widget)
+            self.table_widget.setCellWidget(index, 6, read_button)
+            read_button.setText('Lire la BD')
+            read_button.clicked.connect(self.make_read_comic(comic))
+            edit_button = QPushButton(self.table_widget)
+            self.table_widget.setCellWidget(index, 7, edit_button)
+            edit_button.setText('Modifier les infos')
+            edit_button.clicked.connect(self.make_open_edit_tab(comic))
 
 def get_library_files():
     files = []
