@@ -222,7 +222,6 @@ class Window(QMainWindow):
             else:
                 unrar('library/' + comic, 'library/' + os.path.splitext(comic)[0])
             index += 1
-            print(index)
             self.table_widget.insertRow(index)
             cover_widget = QWidget()
             self.table_widget.setCellWidget(index, 0, cover_widget)
